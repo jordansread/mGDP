@@ -1,12 +1,12 @@
-function [ requestXML, processURL ] = getProcessRequestXML( algorithm, POSTinputs, feature )
+function [ requestXML, processURL ] = getProcessRequestXML( algorithm, PostInputs, feature )
 
 
 
 
-IN = fieldnames(POSTinputs);
+IN = fieldnames(PostInputs);
 
-if ~strcmp(POSTinputs.FEATURE_ATTRIBUTE_NAME,feature.ATTRIBUTE)
-    error('FEATURE_ATTRIBUTE_NAME must agree in feature and POSTinputs')
+if ~strcmp(PostInputs.FEATURE_ATTRIBUTE_NAME,feature.ATTRIBUTE)
+    error('FEATURE_ATTRIBUTE_NAME must agree in feature and PostInputs')
 end
 
 [ namespaces, schemas, ~, defaults, ...
@@ -45,7 +45,7 @@ for i = 1:length(IN)
     inEL.appendChild(inDatEL);
 
     litDatEL = docNode.createElement('wps:LiteralData');
-    litDatEL.appendChild(docNode.createTextNode(POSTinputs.(IN{i})));
+    litDatEL.appendChild(docNode.createTextNode(PostInputs.(IN{i})));
     inDatEL.appendChild(litDatEL);
 end
 
