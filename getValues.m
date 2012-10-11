@@ -3,7 +3,6 @@ function [ values ] = getValues(shapefile,attribute)
 seekString = 'gml:id';%['sample:' attribute];
 
 
-
 [ ~, ~, ~, defaults, ~, endpoints] = getParamsGDP;
 
 processURL = [endpoints.wfs...
