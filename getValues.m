@@ -16,4 +16,3 @@ values = parseXMLforAttributes(responseXML, seekString);
 
 
 end
-
