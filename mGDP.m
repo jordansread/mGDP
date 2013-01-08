@@ -1,6 +1,6 @@
 classdef mGDP
     
-    properties (Hidden)
+    properties (Access = private)
         
         processID = [];
         
@@ -57,8 +57,8 @@ classdef mGDP
         default_post= [];
         default_feat= struct(...
             'FEATURE_COLLECTION',   'sample:CONUS_States',...
-            'ATTRIBUTE',            'STATE',...
-            'GML',                  'CONUS_States.906');
+            'ATTRIBUTE',            'STATE');%,...
+            %'GML',                  'CONUS_States.906');
     end
     
     % can only be set by methods
@@ -91,6 +91,9 @@ classdef mGDP
                 'TIME_START','1895-01-01T00:00:00.000Z',...
                 'TIME_END',  '1905-01-01T00:00:00.000Z');
             
+            % test for science base
+            %GDP = GDP.setGeoserver('http://my.usgs.gov/catalogMaps/mapping/ows/50e74a6ce4b00c3282564f74');
+            
         end
         function [ shapefiles ] = getShapefiles(GDP)
             
@@ -106,7 +109,9 @@ classdef mGDP
         function [ attributes ] = getAttributes(GDP,shapefile)
             
             seekString = 'name';
-
+            if eq(nargin,1)
+                shapefile = GDP.feature.FEATURE_COLLECTION;
+            end
             processURL = [GDP.WFS_URL...
                 '?service=WFS&version=' GDP.WPS_DEFAULT_VERSION '&request=DescribeFeatureType'...
                 '&typename=' shapefile];
@@ -118,7 +123,11 @@ classdef mGDP
             
         end
         function [ values ] = getValues(GDP,shapefile,attribute)
-
+            
+            if eq(nargin,1)
+                shapefile = GDP.feature.FEATURE_COLLECTION;
+                attribute = GDP.feature.ATTRIBUTE;
+            end
             processURL = [GDP.WFS_URL...
                 '?service=WFS&version=' GDP.WPS_DEFAULT_VERSION '&request=GetFeature'...
                 '&info_format=text%2Fxml&typename=' shapefile...
@@ -132,29 +141,13 @@ classdef mGDP
             values = parseXMLforAttributes(responseXML, seekString);
             
         end
-        function [ fileURL , status ] = checkProcess( GDP, responseXML )
+        function [ fileURL , status ] = checkProcess( GDP)
             
-            
+            if isempty(GDP.processID)
+                error('no process started yet for this GDP object')
+            end
             txtStart = [];
             fileURL  = ' ';
-            matSec   = 86400;   % seconds in a day
-            if eq(nargin,2)
-                % parse XML and find creation time
-                stringSeek = 'creationTime=';
-                stringRmv  = '"';
-                
-                
-                [startIdx] = regexp(responseXML,stringSeek);
-                conStr     = responseXML(startIdx:end);
-                
-                % now bookend with stringRmv
-                
-                bookend    = regexp(conStr, stringRmv);
-                startTime  = conStr(bookend(1)+1:bookend(2)-11);
-                startTime  = datenum(startTime,'yyyy-mm-ddTHH:MM:SS');
-                txtStart = [txtStart 'after ' num2str((now-startTime)*matSec) ' seconds, '];
-                
-            end
             
             stringRmv  = '"';
             
@@ -166,6 +159,11 @@ classdef mGDP
             status = false;
             
             responseXML = urlread(GDP.processID);
+            % look for exceptions
+            elements = parseXMLforElements(responseXML,'ns1:ExceptionText');
+            if ~isempty(elements)
+                for i = 1:length(elements); error(elements{i}); end
+            end
             % check if responseXML contains download link
             [startIdx] = regexp(responseXML,processNum);
             if ~isempty(startIdx)
@@ -176,13 +174,12 @@ classdef mGDP
                 fileURL  = [fileRoot fileNum];
                 disp([txtStart 'process complete'])
             else
-                disp([txtStart 'process incomplete'])
-                
-                
+                disp([txtStart 'process incomplete'])                
             end
         end
         function GDP = executePost(GDP)
-            
+            % first test inputs
+            GDP.testInputs()
             
             import java.io.*
             import java.net.*
@@ -244,7 +241,15 @@ classdef mGDP
             
             for i = 1:2:numArgs
                 fieldName = varargin{i};
+                if ~isfield(GDP.feature,fieldName)
+                    error([fieldName ' is not a supported element in the feature set']);
+                end
+                disp(fieldName)
                 GDP.feature.(fieldName) = varargin{i+1};
+                if strcmp(fieldName,'ATTRIBUTE')
+                    GDP = GDP.setPostInputs(...
+                        'FEATURE_ATTRIBUTE_NAME',varargin{i+1});
+                end
             end
             
         end
@@ -278,6 +283,21 @@ classdef mGDP
     end
     %% --- private methods
     methods (Access = private)
+        function testInputs(GDP)
+            FN = fieldnames(GDP.PostInputs);
+            for f = 1:length(FN)
+                if isempty(GDP.PostInputs.(FN{f}))
+                    error(['Post Input ' FN{f} ' not defined']);
+                end
+            end
+            FN = fieldnames(GDP.feature);
+            for f = 1:length(FN)
+                if isempty(GDP.feature.(FN{f}))
+                    error(['Feature type ' FN{f} ' not defined']);
+                end
+            end
+        end
+            
         function GDP = setProcessID(GDP,processID)
             GDP.processID = processID;
         end
@@ -411,7 +431,7 @@ classdef mGDP
                 error('FEATURE_ATTRIBUTE_NAME must agree in feature and PostInputs')
             end
 
-            %%
+            %
             docNode = com.mathworks.xml.XMLUtils.createDocument('wps:Execute');
             root = docNode.getDocumentElement;
             root.setAttribute('service',    'WPS');
@@ -423,7 +443,7 @@ classdef mGDP
             root.setAttribute('xsi:schemaLocation',[GDP.WPS_DEFAULT_NAMESPACE ...
                 ' ' GDP.WPS_SCHEMA_LOCATION]);
             
-            %% subelement to root
+            % subelement to root
             identifierEL = docNode.createElement('ows:Identifier');
             identifierEL.appendChild(docNode.createTextNode( GDP.algorithms.(GDP.algorithm) )); % tricky...
             root.appendChild(identifierEL);
@@ -446,7 +466,7 @@ classdef mGDP
                 inDatEL.appendChild(litDatEL);
             end
             
-            %% complex data
+            % complex data
             inEL     = docNode.createElement('wps:Input');
             dataInEL.appendChild(inEL);
             inIdEL   = docNode.createElement('ows:Identifier');
@@ -483,7 +503,7 @@ classdef mGDP
             propNmEL.appendChild(docNode.createTextNode(GDP.feature.ATTRIBUTE));
             queryEL.appendChild(propNmEL);
             
-            if ~isempty(GDP.feature.GML)
+            if isfield(GDP.feature,'GML')&& ~isempty(GDP.feature.GML) 
                 filterEL    = docNode.createElement('ogc:Filter');
                 queryEL.appendChild(filterEL);
                 
@@ -494,8 +514,8 @@ classdef mGDP
                 
             end
             
-            
-            %% build response form
+          
+            %build response form
             
             resForm = docNode.createElement('wps:ResponseForm');
             root.appendChild(resForm);
