@@ -2,8 +2,6 @@ classdef mGDP
     
     properties (Access = private)
         
-        processID = [];
-        
         WPS_DEFAULT_VERSION = '1.0.0';
         WFS_DEFAULT_VERSION = '1.1.0';
         WPS_DEFAULT_NAMESPACE='http://www.opengis.net/wps/1.0.0';
@@ -56,9 +54,9 @@ classdef mGDP
         default_alg = 'FWGS';
         default_post= [];
         default_feat= struct(...
-            'FEATURE_COLLECTION',   'sample:CONUS_States',...
-            'ATTRIBUTE',            'STATE');%,...
-            %'GML',                  'CONUS_States.906');
+            'FEATURE_COLLECTION',   [],...
+            'ATTRIBUTE',            [],...
+            'GML',                  []);
     end
     
     % can only be set by methods
@@ -71,6 +69,7 @@ classdef mGDP
         algorithm   = [];
         PostInputs  = [];
         feature     = [];
+        processID   = [];
 
     end
     
@@ -92,7 +91,7 @@ classdef mGDP
                 'TIME_END',  '1905-01-01T00:00:00.000Z');
             
             % test for science base
-            %GDP = GDP.setGeoserver('http://my.usgs.gov/catalogMaps/mapping/ows/50e74a6ce4b00c3282564f74');
+            GDP = GDP.setGeoserver('https://www.sciencebase.gov/catalogMaps/mapping/ows/50e72cf8e4b00c3282549a83');
             
         end
         function [ shapefiles ] = getShapefiles(GDP)
@@ -100,7 +99,7 @@ classdef mGDP
             seekString = 'Name';      
             
             processURL = [GDP.WFS_URL...
-                '?service=WFS&version=' GDP.WPS_DEFAULT_VERSION '&request=GetCapabilities'];
+                '?service=WFS&version=' GDP.WFS_DEFAULT_VERSION '&request=GetCapabilities'];
             
             [responseXML] = urlread(processURL);
             shapefiles = parseXMLforElements(responseXML, seekString);
@@ -113,7 +112,7 @@ classdef mGDP
                 shapefile = GDP.feature.FEATURE_COLLECTION;
             end
             processURL = [GDP.WFS_URL...
-                '?service=WFS&version=' GDP.WPS_DEFAULT_VERSION '&request=DescribeFeatureType'...
+                '?service=WFS&version=' GDP.WFS_DEFAULT_VERSION '&request=DescribeFeatureType'...
                 '&typename=' shapefile];
             
             [responseXML] = urlread(processURL);
@@ -129,7 +128,7 @@ classdef mGDP
                 attribute = GDP.feature.ATTRIBUTE;
             end
             processURL = [GDP.WFS_URL...
-                '?service=WFS&version=' GDP.WPS_DEFAULT_VERSION '&request=GetFeature'...
+                '?service=WFS&version=' GDP.WFS_DEFAULT_VERSION '&request=GetFeature'...
                 '&info_format=text%2Fxml&typename=' shapefile...
                 '&propertyname=' attribute];
             
@@ -143,10 +142,10 @@ classdef mGDP
         end
         function [ fileURL , status ] = checkProcess( GDP)
             
+            % this checker should be more robust...
             if isempty(GDP.processID)
                 error('no process started yet for this GDP object')
             end
-            txtStart = [];
             fileURL  = ' ';
             
             stringRmv  = '"';
@@ -172,9 +171,9 @@ classdef mGDP
                 [endIdx] = regexp(conStr,stringRmv);
                 fileNum  = conStr(1:endIdx(1)-1);
                 fileURL  = [fileRoot fileNum];
-                disp([txtStart 'process complete'])
+                disp([GDP.processID ' process complete'])
             else
-                disp([txtStart 'process incomplete'])                
+                disp([GDP.processID ' process incomplete'])                
             end
         end
         function GDP = executePost(GDP)
@@ -227,11 +226,11 @@ classdef mGDP
         
         function GDP = setDatasetURI(GDP,URI)
             GDP.datasetURI  = URI;
+            GDP = GDP.setPostInputs('DATASET_URI',GDP.datasetURI);
         end
         function GDP = setFeature( GDP, varargin )
             
-            
-            % provide key value pairs to change POSTinputs structure
+            % provide key value pairs to change feature structure
             
             numArgs = length(varargin);
             
@@ -244,7 +243,6 @@ classdef mGDP
                 if ~isfield(GDP.feature,fieldName)
                     error([fieldName ' is not a supported element in the feature set']);
                 end
-                disp(fieldName)
                 GDP.feature.(fieldName) = varargin{i+1};
                 if strcmp(fieldName,'ATTRIBUTE')
                     GDP = GDP.setPostInputs(...
@@ -273,7 +271,8 @@ classdef mGDP
         function GDP = setAlgorithm( GDP, algorithm )
             
             
-            % provide key value pairs to change POSTinputs structure
+            % provide string for processing algorithm
+            
             GDP.algorithm = algorithm;
             GDP = initPostInputs (GDP);
             
@@ -307,12 +306,12 @@ classdef mGDP
             % -- variables --
             GDP.PostInputs = struct(...
                 'FEATURE_ATTRIBUTE_NAME', [],...
-                'DATASET_URI',  GDP.datasetURI,...
+                'DATASET_URI',  [],...
                 'DATASET_ID',   [],...      % this is the variable name
                 'TIME_START',   [],...
                 'TIME_END',     [],...
                 'REQUIRE_FULL_COVERAGE','true',...
-                'DELIMITER',    'COMMA',...
+                'DELIMITER',    'TAB',...       % check that this works
                 'STATISTICS',   'MEAN',...
                 'GROUP_BY',     'STATISTIC',...
                 'SUMMARIZE_TIMESTEP', 'false',...
@@ -503,7 +502,8 @@ classdef mGDP
             propNmEL.appendChild(docNode.createTextNode(GDP.feature.ATTRIBUTE));
             queryEL.appendChild(propNmEL);
             
-            if isfield(GDP.feature,'GML')&& ~isempty(GDP.feature.GML) 
+            if isfield(GDP.feature,'GML')&& ~isempty(GDP.feature.GML) ...
+                    && ~strcmp(GDP.feature.GML,'NULL')
                 filterEL    = docNode.createElement('ogc:Filter');
                 queryEL.appendChild(filterEL);
                 
