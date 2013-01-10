@@ -177,10 +177,8 @@ classdef mGDP
                     [endIdx] = regexp(conStr,stringRmv);
                     fileNum  = conStr(1:endIdx(1)-1);
                     fileURL  = [fileRoot fileNum];
-                    disp([GDP.processID ' process complete'])
                 else
                     status = 'incomplete';
-                    disp([GDP.processID ' process incomplete'])
                 end
             end
         end
