@@ -142,10 +142,12 @@ classdef mGDP
         end
         function [ fileURL , status ] = checkProcess( GDP)
             
+            % status can be failed, complete, incomplete, none, or unknown
             % this checker should be more robust...
             if isempty(GDP.processID)
-                error('no process started yet for this GDP object')
+                status = 'none';
             end
+            
             fileURL  = ' ';
             
             stringRmv  = '"';
@@ -157,23 +159,29 @@ classdef mGDP
             
             status = false;
             
-            responseXML = urlread(GDP.processID);
-            % look for exceptions
-            elements = parseXMLforElements(responseXML,'ns1:ExceptionText');
-            if ~isempty(elements)
-                for i = 1:length(elements); error(elements{i}); end
+            try responseXML = urlread(GDP.processID);
+            
+            catch
+                status = 'unknown';
             end
-            % check if responseXML contains download link
-            [startIdx] = regexp(responseXML,processNum);
-            if ~isempty(startIdx)
-                status = true;
-                conStr = responseXML(startIdx:end);
-                [endIdx] = regexp(conStr,stringRmv);
-                fileNum  = conStr(1:endIdx(1)-1);
-                fileURL  = [fileRoot fileNum];
-                disp([GDP.processID ' process complete'])
-            else
-                disp([GDP.processID ' process incomplete'])                
+            if ~strcmp(status,'unknown') && ~strcmp(status,'none')
+                % look for exceptions
+                elements = parseXMLforElements(responseXML,'ns1:ExceptionText');
+                [startIdx] = regexp(responseXML,processNum);
+                if ~isempty(elements)
+                    for i = 1:length(elements); disp(elements{i}); end
+                    status = 'failed';
+                elseif ~isempty(startIdx)
+                    status = 'complete';
+                    conStr = responseXML(startIdx:end);
+                    [endIdx] = regexp(conStr,stringRmv);
+                    fileNum  = conStr(1:endIdx(1)-1);
+                    fileURL  = [fileRoot fileNum];
+                    disp([GDP.processID ' process complete'])
+                else
+                    status = 'incomplete';
+                    disp([GDP.processID ' process incomplete'])
+                end
             end
         end
         function GDP = executePost(GDP)
