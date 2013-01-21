@@ -230,6 +230,10 @@ classdef mGDP
             GDP.WFS_URL = wfs;
         end
         
+        function GDP = setWPS(GDP,wps)
+            GDP.PROCESS_URL = wps;
+        end
+        
         function GDP = setDatasetURI(GDP,URI)
             GDP.datasetURI  = URI;
             GDP = GDP.setPostInputs('DATASET_URI',GDP.datasetURI);
