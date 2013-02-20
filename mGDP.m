@@ -102,7 +102,7 @@ classdef mGDP
                 '?service=WFS&version=' GDP.WFS_DEFAULT_VERSION '&request=GetCapabilities'];
             
             [responseXML] = urlread(processURL);
-            shapefiles = parseXMLforElements(responseXML, seekString);
+            shapefiles = parseXMLforElements(GDP,responseXML, seekString);
             
         end
         function [ attributes ] = getAttributes(GDP,shapefile)
@@ -117,7 +117,7 @@ classdef mGDP
             
             [responseXML] = urlread(processURL);
             
-            attributes = parseXMLforAttributes(responseXML, seekString);
+            attributes = parseXMLforAttributes(GDP,responseXML, seekString);
             attributes = attributes(2:end);     % first one is the name of the shapefile
             
         end
@@ -137,10 +137,10 @@ classdef mGDP
             if isempty(strfind(responseXML,seekString))
                 seekString = 'fid';
             end
-            values = parseXMLforAttributes(responseXML, seekString);
+            values = parseXMLforAttributes(GDP,responseXML, seekString);
             
         end
-        function [ fileURL , status ] = checkProcess( GDP)
+        function [ fileURL , status ] = checkProcess(GDP)
             
             % status can be failed, complete, incomplete, none, or unknown
             % this checker should be more robust...
@@ -166,7 +166,7 @@ classdef mGDP
             end
             if ~strcmp(status,'unknown') && ~strcmp(status,'none')
                 % look for exceptions
-                elements = parseXMLforElements(responseXML,'ns1:ExceptionText');
+                elements = parseXMLforElements(GDP,responseXML,'ns1:ExceptionText');
                 [startIdx] = regexp(responseXML,processNum);
                 if ~isempty(elements)
                     for i = 1:length(elements); disp(elements{i}); end
@@ -215,13 +215,10 @@ classdef mGDP
             byteArrayOutputStream.close;
             
             responseXML = char(byteArrayOutputStream.toString('UTF-8'));
-            prssID = getProcessID( responseXML );
-            GDP = setProcessID(GDP,prssID);
+            prssID = parseXMLforAttributes(GDP,responseXML,'statusLocation');
+            GDP = setProcessID(GDP,prssID{1});
         end
-
-
-
-
+        
     end
     %% -
     methods
@@ -287,6 +284,7 @@ classdef mGDP
             GDP = initPostInputs (GDP);
             
         end
+        
 
         
     end
@@ -371,7 +369,8 @@ classdef mGDP
             end
             
         end
-        function elements = parseXMLforElements(responseXML, seekString)
+        
+        function elements = parseXMLforElements(~,responseXML, seekString)
             seekStart = ['<'  seekString '>'];
             seekEnd   = ['</' seekString '>'];
             
@@ -390,9 +389,9 @@ classdef mGDP
             for i = 1:numShp
                 elements{i} = responseXML(matchend(i)+1:matchstart(i)-1);
             end
-
+            
         end
-        function attributes = parseXMLforAttributes(responseXML, seekString)
+        function attributes = parseXMLforAttributes(~,responseXML, seekString)
             
             seekStart = [seekString '="'];
             seekEnd   = '"';
@@ -414,23 +413,6 @@ classdef mGDP
             for i = 1:numShp
                 attributes{i} = responseXML(matchend(i)+1:realMS(i)-1);
             end
-        end
-        function [ processID ] = getProcessID( responseXML )
-            
-            % parse XML and find process ID
-            stringSeek = 'statusLocation=';
-            
-            stringRmv  = '"';
-            
-            
-            [startIdx] = regexp(responseXML,stringSeek);
-            conStr     = responseXML(startIdx:end);
-            
-            % now bookend with stringRmv
-            
-            bookend    = regexp(conStr, stringRmv);
-            processID  = conStr(bookend(1)+1:bookend(2)-1);
-            
         end
         function requestXML = postInputsToXML(GDP)
             
