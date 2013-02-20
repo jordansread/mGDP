@@ -71,7 +71,7 @@ while ~done
         
         if done  % will be first time that done is true
             disp(['***** writing ' YYYY '/' fileNm '.txt *****']);
-            urlwrite(f_Handle,[YYYY '/' fileNm '.txt']);cd ..
+            urlwrite(f_Handle,[writeDir YYYY '/' fileNm '.txt']);cd ..
         end
     elseif done && retry
         disp(['#$(&@#& '  varN ' process failed #$&(@#$'])
