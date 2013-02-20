@@ -1,4 +1,16 @@
-function getDriverDataGDP
+function getDriverDataGDP(year)
+
+% getDriverDataGDP is an example for the use of the mGDP object. The
+% example takes advantage of the "setGeoserver" method to modify the
+% geoserver location from the default (cida.usgs.gov/gdp/geoserver/wfs) to
+% a sciencebase host of a shapefile for the lake mendota boundary.
+
+% The dataset being used is the downwelling 3 hr shortwave radiation from
+% NARR, and the year is defined as a variable.
+
+% getDriverDataGDP sets the appropriate fields in the mGDP object, then
+% checks the state of the processing request until it has finished
+% (retrying 5 times if it fails) and writes the results to file. 
 
 clc
 clear all
@@ -7,35 +19,39 @@ clear all
 timerPeriod = 42;   % seconds between checking
 retries = 5;        % times to try again after failed process
 
+% - new geoserver location defined - 
 GeoServ = 'https://www.sciencebase.gov/catalogMaps/mapping/ows/5064a227e4b0050306263069';
 
-varURI= 'dods://www.esrl.noaa.gov/psd/thredds/dodsC/Datasets/NARR/monolevel/dswrf.YYYY.nc';
+% - file ouput specifications - 
 fileN = 'SW_NARR';
-varN  = 'dswrf';
-year  = 1998;
 YYYY  = num2str(year);
-
-feature_collection = 'sb:mendota';
-attribute = 'ComID'; % for WBIC codes...
-
 writeDir= './Driver data/';
 
+% - feature information related to the shapefile - 
+feature_collection = 'sb:mendota';
+attribute = 'ComID'; % attribute in the shapefile that is defined
+
+% - URI location and variable name - 
+varURI= 'dods://www.esrl.noaa.gov/psd/thredds/dodsC/Datasets/NARR/monolevel/dswrf.YYYY.nc';
+varN  = 'dswrf';
+URI = regexprep(varURI,'YYYY',YYYY);
+disp(URI) % display the processing target dataset
+
 %% set processing
+GDP = mGDP();       % instantiate the mGDP object
 
-
-GDP = mGDP();
-
+% - set fields or modify fields from the mGDP defaults -
 GDP = GDP.setGeoserver(GeoServ);
 GDP = GDP.setFeature('FEATURE_COLLECTION',feature_collection,...
     'ATTRIBUTE',attribute,'GML','NULL');
-
-URI = regexprep(varURI,'YYYY',YYYY);
-disp(URI)
 GDP = GDP.setPostInputs('DATASET_ID',varN,...
     'TIME_START',[YYYY '-01-01T00:00:00.000Z'],...
     'TIME_END',  [YYYY '-12-31T00:00:00.000Z']);
 GDP = GDP.setDatasetURI(URI);
+
+% - excecute the defined mGDP post -
 GDP = GDP.executePost;
+
 attempt = 1;
 retry = false;
 done = false;
