@@ -11,6 +11,7 @@ function getDriverDataGDP(year)
 % usage: getDriverDataGDP(1998); will access and write downwelling sw
 % radiation data for lake mendota during the year of 1998. 
 
+
 % The dataset being used is the downwelling 3 hr shortwave radiation from
 % NARR, and the year is defined as a variable.
 
