@@ -271,7 +271,11 @@ classdef mGDP
             
             for i = 1:2:numArgs
                 fieldName = varargin{i};
-                GDP.PostInputs.(fieldName) = varargin{i+1};
+                if strcmp(varargin{i+1},'NULL')
+                    GDP.PostInputs = rmfield(GDP.PostInputs,fieldName);
+                else
+                    GDP.PostInputs.(fieldName) = varargin{i+1};
+                end
             end
             
         end
