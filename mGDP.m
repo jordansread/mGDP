@@ -89,10 +89,6 @@ classdef mGDP
             GDP = GDP.setPostInputs('DATASET_ID','ppt',...
                 'TIME_START','1895-01-01T00:00:00.000Z',...
                 'TIME_END',  '1905-01-01T00:00:00.000Z');
-            
-            % test for science base
-            GDP = GDP.setGeoserver('https://www.sciencebase.gov/catalogMaps/mapping/ows/50e72cf8e4b00c3282549a83');
-            
         end
         function [ shapefiles ] = getShapefiles(GDP)
             
