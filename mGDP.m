@@ -48,7 +48,7 @@ classdef mGDP
         emailK      = ['gov.usgs.cida.gdp.wps.algorithm.'...
             'communication.EmailWhenFinishedAlgorithm'];
         
-        default_WFS = 'http://cida.usgs.gov/gdp/geoserver/wfs';
+        default_WFS = 'http://cida-eros-gdp2.er.usgs.gov:8082/geoserver/wfs';
         default_WPS = 'http://cida.usgs.gov/gdp/process/WebProcessingService';
         default_URI = 'dods://cida.usgs.gov/qa/thredds/dodsC/prism';
         default_alg = 'FWGS';
