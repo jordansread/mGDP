@@ -444,8 +444,23 @@ classdef mGDP
             
             for i = 1:length(IN)
                 % if is cell GDP.PostInputs.(IN{i})
-                postOut = {GDP.PostInputs.(IN{i})};
-                for c = 1:length(postOut)
+                if iscell(GDP.PostInputs.(IN{i}))
+                    postOut = {GDP.PostInputs.(IN{i})};
+                    for c = 1:length(postOut{1})
+                        inEL     = docNode.createElement('wps:Input');
+                        dataInEL.appendChild(inEL);
+                        inIdEL   = docNode.createElement('ows:Identifier');
+                        inIdEL.appendChild(docNode.createTextNode(char(IN{i})));
+                        inEL.appendChild(inIdEL);
+                        
+                        inDatEL  = docNode.createElement('wps:Data');
+                        inEL.appendChild(inDatEL);
+                        
+                        litDatEL = docNode.createElement('wps:LiteralData');
+                        litDatEL.appendChild(docNode.createTextNode(char(postOut{1}(c))));
+                        inDatEL.appendChild(litDatEL);
+                    end
+                else
                     inEL     = docNode.createElement('wps:Input');
                     dataInEL.appendChild(inEL);
                     inIdEL   = docNode.createElement('ows:Identifier');
@@ -456,9 +471,10 @@ classdef mGDP
                     inEL.appendChild(inDatEL);
                     
                     litDatEL = docNode.createElement('wps:LiteralData');
-                    litDatEL.appendChild(docNode.createTextNode(postOut{c}));
+                    litDatEL.appendChild(docNode.createTextNode(GDP.PostInputs.(IN{i})));
                     inDatEL.appendChild(litDatEL);
                 end
+                
             end
             
             % complex data
