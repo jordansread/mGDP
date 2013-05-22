@@ -443,18 +443,22 @@ classdef mGDP
             root.appendChild(dataInEL);
             
             for i = 1:length(IN)
-                inEL     = docNode.createElement('wps:Input');
-                dataInEL.appendChild(inEL);
-                inIdEL   = docNode.createElement('ows:Identifier');
-                inIdEL.appendChild(docNode.createTextNode(char(IN{i})));
-                inEL.appendChild(inIdEL);
-                
-                inDatEL  = docNode.createElement('wps:Data');
-                inEL.appendChild(inDatEL);
-                
-                litDatEL = docNode.createElement('wps:LiteralData');
-                litDatEL.appendChild(docNode.createTextNode(GDP.PostInputs.(IN{i})));
-                inDatEL.appendChild(litDatEL);
+                % if is cell GDP.PostInputs.(IN{i})
+                postOut = {GDP.PostInputs.(IN{i})};
+                for c = 1:length(postOut)
+                    inEL     = docNode.createElement('wps:Input');
+                    dataInEL.appendChild(inEL);
+                    inIdEL   = docNode.createElement('ows:Identifier');
+                    inIdEL.appendChild(docNode.createTextNode(char(IN{i})));
+                    inEL.appendChild(inIdEL);
+                    
+                    inDatEL  = docNode.createElement('wps:Data');
+                    inEL.appendChild(inDatEL);
+                    
+                    litDatEL = docNode.createElement('wps:LiteralData');
+                    litDatEL.appendChild(docNode.createTextNode(postOut{c}));
+                    inDatEL.appendChild(litDatEL);
+                end
             end
             
             % complex data
